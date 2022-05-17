@@ -13,6 +13,7 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+        
 
 //------------------------------- Manage Food By Manager ----------------------------------//
         [Authorize(Roles = new[] {"MANAGER"})]

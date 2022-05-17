@@ -50,13 +50,14 @@ namespace BigFood.Models
             {
                 entity.ToTable("Order");
 
-                entity.Property(e => e.Code)
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("code");
+                entity.HasOne(d => d.Courier)
+                    .WithMany(p => p.OrderCouriers)
+                    .HasForeignKey(d => d.CourierId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Order_User1");
 
                 entity.HasOne(d => d.User)
-                    .WithMany(p => p.Orders)
+                    .WithMany(p => p.OrderUsers)
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_Order_User");
@@ -64,19 +65,21 @@ namespace BigFood.Models
 
             modelBuilder.Entity<OrderDetail>(entity =>
             {
-                entity.ToTable("OrderDetail");
+                entity.Property(e => e.EndDate).HasColumnType("datetime");
+
+                entity.Property(e => e.StartDate).HasColumnType("datetime");
 
                 entity.HasOne(d => d.Food)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.FoodId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_OrderDetail_Food");
+                    .HasConstraintName("FK_Order_Food");
 
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.OrderId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_OrderDetail_Order");
+                    .HasConstraintName("FK_OrderDetails_Order");
             });
 
             modelBuilder.Entity<Profile>(entity =>
