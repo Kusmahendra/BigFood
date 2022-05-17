@@ -13,7 +13,91 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+
+//-------------------------------Buyer Action ----------------------------------//        
         
+        
+        [Authorize(Roles = new[] {"BUYER"})]
+        public async Task<Order> AddOrderByBuyerAsync(
+            OrderInput input,
+            [Service] BigFoodContext context,
+            ClaimsPrincipal claimsPrincipal)
+        {
+            //---------------------------------------------
+            double distance(double lat1, double lon1, double lat2, double lon2) 
+            {
+                if ((lat1 == lat2) && (lon1 == lon2)) {
+                    return 0;
+                }
+                else {
+                    double theta = lon1 - lon2;
+                    double dist = Math.Sin(deg2rad(lat1)) * Math.Sin(deg2rad(lat2)) + Math.Cos(deg2rad(lat1)) * Math.Cos(deg2rad(lat2)) * Math.Cos(deg2rad(theta));
+                    dist = Math.Acos(dist);
+                    dist = rad2deg(dist);
+                    dist = dist * 1.609344;
+                    return (dist);
+                }
+            }
+            double rad2deg(double rad) 
+            {
+                return (rad / Math.PI * 180.0);
+            }
+            double deg2rad(double deg) 
+            {
+                return (deg * Math.PI / 180.0);
+            }
+
+            double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
+            {
+                if ((latitude == otherLatitude) && (longitude == otherLongitude)) {
+                    return 0;
+                }
+                else 
+                {
+                    var d1 = latitude * (Math.PI / 180.0);
+                    var num1 = longitude * (Math.PI / 180.0);
+                    var d2 = otherLatitude * (Math.PI / 180.0);
+                    var num2 = otherLongitude * (Math.PI / 180.0) - num1;
+                    var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) + Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
+                    
+                    return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
+                }
+            }
+            //=============================================
+            var userName = claimsPrincipal.Identity.Name;
+            var user = context.Users.Where(o => o.Username == userName).FirstOrDefault();
+            var statuUser = context.Statuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
+            var statusCourier = context.Statuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
+            var jarak = distance(Convert.ToDouble(statuUser.LocationLat), 
+                Convert.ToDouble(statuUser.LocationLong), 
+                Convert.ToDouble(statusCourier.LocationLat), 
+                Convert.ToDouble(statusCourier.LocationLong));
+            var jarak2 = Convert.ToString(jarak);
+            var order = new Order
+            {
+                UserId = user.Id,
+                CourierId = input.CourierId,
+                Complete = false,
+                Distance =  jarak2
+            };
+            context.Orders.Add(order);
+            await context.SaveChangesAsync();
+
+            var orderDetail = new OrderDetail
+            {
+                Quantity = input.Quantity,
+                StartDate = DateTime.Now,
+                OrderId = order.Id,
+                FoodId = input.FoodId
+            };
+            context.OrderDetails.Add(orderDetail);
+            await context.SaveChangesAsync();
+
+            return order;
+        }
+
+
+//------------------------------------------------------------------------------//        
 
 //------------------------------- Manage Food By Manager ----------------------------------//
         [Authorize(Roles = new[] {"MANAGER"})]

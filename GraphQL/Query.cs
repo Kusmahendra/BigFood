@@ -7,6 +7,11 @@ namespace BigFood.GraphQL
 {
     public class Query
     {
+        //View Foods
+        [Authorize(Roles = new[] {"BUYER"})]
+        public IQueryable<Food> GetFoodsByBuyer([Service] BigFoodContext context) =>
+            context.Foods;
+
 //------------------------------- Manage Food By Manager ----------------------------------//
         [Authorize(Roles = new[] {"MANAGER"})]
         public IQueryable<Food> GetFoods([Service] BigFoodContext context) =>

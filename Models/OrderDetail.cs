@@ -6,7 +6,6 @@ namespace BigFood.Models
     public partial class OrderDetail
     {
         public int Id { get; set; }
-        public bool Complete { get; set; }
         public int Quantity { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
