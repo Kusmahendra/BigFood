@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "f:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj": {}
+    "F:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj": {}
   },
   "projects": {
-    "f:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj": {
+    "F:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "f:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj",
+        "projectUniqueName": "F:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj",
         "projectName": "BigFood",
-        "projectPath": "f:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj",
+        "projectPath": "F:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\BigFood.csproj",
         "packagesPath": "C:\\Users\\Kus\\.nuget\\packages\\",
-        "outputPath": "f:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\obj\\",
+        "outputPath": "F:\\DOK\\Bootcamp\\GraphQL API Project Food Delivering\\BigFood\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Kus\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -71,6 +71,10 @@
             "Microsoft.EntityFrameworkCore.Tools": {
               "target": "Package",
               "version": "[6.0.5, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[6.17.0, )"
             }
           },
           "imports": [
