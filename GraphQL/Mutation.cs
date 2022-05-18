@@ -6,6 +6,7 @@ using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using HotChocolate.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace BigFood.GraphQL
 {
@@ -13,6 +14,82 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+//-------------------------------Manage Courier----------------------------------//
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public async Task<User> DeleteCourierByManagerAsync(
+            int input,
+            [Service] BigFoodContext context)
+        {
+            var role = context.UserRoles.Where(u=>u.UserId == input).FirstOrDefault();
+            var user = context.Users.Where(o=>o.Id == input).Include(u=>u.UserRoles).FirstOrDefault();
+            if(user != null && role.RoleId == 4)
+            {
+                context.Users.Remove(user);
+                await context.SaveChangesAsync();
+   
+            }
+            return await Task.FromResult(user);
+        }
+
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public async Task<UserData> UpdateCourierByManagerAsync(
+            RegisterUser input,
+            [Service] BigFoodContext context)
+        {
+            var role = context.UserRoles.Where(u=>u.UserId == input.Id).FirstOrDefault();
+            var user = context.Users.Where(o=>o.Id == input.Id && role.RoleId == 4).FirstOrDefault();
+            if(user != null)
+            {
+                user.Username = input.UserName;
+                user.Email = input.Email;
+                user.Password = BCrypt.Net.BCrypt.HashPassword(input.Password); 
+                var ret = context.Users.Update(user);
+                await context.SaveChangesAsync();
+            }
+            return await Task.FromResult(new UserData { 
+                Id=user.Id,
+                Username=user.Username,
+                Email =user.Email,
+            });
+        }
+
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public async Task<UserData> CreateCourierByManagerAsync(
+            RegisterUser input,
+            [Service] BigFoodContext context)
+        {
+            var role = context.UserRoles.FirstOrDefault();
+            var user = context.Users.Where(o=>o.Id == input.Id && role.RoleId == 4).FirstOrDefault();
+            if(user != null)
+            {
+                return await Task.FromResult(new UserData());
+            }
+            var newUser = new User
+            {
+                Username = input.UserName,
+                Email = input.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword(input.Password)
+            };
+
+            var ret = context.Users.Add(newUser);
+            await context.SaveChangesAsync();
+
+            var newRoles = new UserRole
+            {
+                UserId = newUser.Id,
+                RoleId = 4
+            };
+            context.UserRoles.Add(newRoles);
+            await context.SaveChangesAsync();
+
+            return await Task.FromResult(new UserData { 
+                Id=newUser.Id,
+                Username=newUser.Username,
+                Email =newUser.Email,
+            });
+        }
+//-------------------------------------------------------------------------------//
+
 //-------------------------------Courier Action ----------------------------------//
 
         [Authorize(Roles = new[] {"COURIER"})]
