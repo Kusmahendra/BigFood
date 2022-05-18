@@ -13,12 +13,55 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+//-------------------------------Courier Action ----------------------------------//
+        [Authorize(Roles = new[] {"COURIER"})]
+        public async Task<Order> CompleteOrderByCourierAsync(
+            [Service] BigFoodContext context,
+            ClaimsPrincipal claimsPrincipal)
+        {
+            var userName = claimsPrincipal.Identity.Name;
+            var courier = context.Users.Where(o => o.Username == userName).FirstOrDefault();
+            var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
+            var orderDetail = context.OrderDetails.Where(d=>d.OrderId == order.Id).FirstOrDefault();
+            var status = context.Statuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
+
+            using var transaction = context.Database.BeginTransaction();
+
+            try
+            {
+                if(order!=null)
+                {
+                    order.Complete = true;
+                    context.Orders.Update(order);
+                    //await context.SaveChangesAsync();
+
+                    status.Status1 = "AVAILABLE";
+                    context.Statuses.Update(status);
+                    //await context.SaveChangesAsync();
+
+                    orderDetail.EndDate = DateTime.Now;
+                    context.OrderDetails.Update(orderDetail);
+                    await context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                    return await Task.FromResult(order);
+                }
+            }
+            catch
+            {
+                transaction.Rollback();
+            }
+            return await Task.FromResult(order);
+        }
+
+
+//--------------------------------------------------------------------------------//        
 
 //-------------------------------Buyer Action ----------------------------------//        
         
         
         [Authorize(Roles = new[] {"BUYER"})]
-        public async Task<Order> AddOrderByBuyerAsync(
+        public async Task<OrderMessage> AddOrderByBuyerAsync(
             OrderInput input,
             [Service] BigFoodContext context,
             ClaimsPrincipal claimsPrincipal)
@@ -66,34 +109,58 @@ namespace BigFood.GraphQL
             //=============================================
             var userName = claimsPrincipal.Identity.Name;
             var user = context.Users.Where(o => o.Username == userName).FirstOrDefault();
-            var statuUser = context.Statuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
-            var statusCourier = context.Statuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
-            var jarak = distance(Convert.ToDouble(statuUser.LocationLat), 
-                Convert.ToDouble(statuUser.LocationLong), 
-                Convert.ToDouble(statusCourier.LocationLat), 
-                Convert.ToDouble(statusCourier.LocationLong));
+            var courier = context.Users.Where(u=>u.Id == input.CourierId).FirstOrDefault();
+            var locUser = context.Statuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
+            var locCourier = context.Statuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
+            var jarak = distance(Convert.ToDouble(locUser.LocationLat), 
+                Convert.ToDouble(locUser.LocationLong), 
+                Convert.ToDouble(locCourier.LocationLat), 
+                Convert.ToDouble(locCourier.LocationLong));
             var jarak2 = Convert.ToString(jarak);
-            var order = new Order
-            {
-                UserId = user.Id,
-                CourierId = input.CourierId,
-                Complete = false,
-                Distance =  jarak2
-            };
-            context.Orders.Add(order);
-            await context.SaveChangesAsync();
 
-            var orderDetail = new OrderDetail
+            using var transaction = context.Database.BeginTransaction();
+            try
             {
-                Quantity = input.Quantity,
-                StartDate = DateTime.Now,
-                OrderId = order.Id,
-                FoodId = input.FoodId
-            };
-            context.OrderDetails.Add(orderDetail);
-            await context.SaveChangesAsync();
+                if(locCourier.Status1 == "AVAILABLE")
+                {
+                    var order = new Order
+                    {
+                        UserId = user.Id,
+                        CourierId = input.CourierId,
+                        Complete = false,
+                        Distance =  jarak2
+                    };
+                    context.Orders.Add(order);
+                    await context.SaveChangesAsync();
 
-            return order;
+                    var orderDetail = new OrderDetail
+                    {
+                        Quantity = input.Quantity,
+                        StartDate = DateTime.Now,
+                        OrderId = order.Id,
+                        FoodId = input.FoodId
+                    };
+                    context.OrderDetails.Add(orderDetail);
+                    await context.SaveChangesAsync();
+
+                    locCourier.Status1 = "UNAVAILABLE";
+                    context.Statuses.Update(locCourier);
+                    await context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                    return await Task.FromResult(new OrderMessage(input.CourierId, order.Distance, 
+                        $"Pesananmu sedang dipesan oleh Kurir {courier.Username}"));
+                }
+                else
+                {
+                    throw new Exception("Courier Not Available");
+                }
+            }
+            catch
+            {
+                transaction.Rollback();
+            }
+            return await Task.FromResult(new OrderMessage(input.CourierId, "0", "Gagal Memesan"));
         }
 
 
