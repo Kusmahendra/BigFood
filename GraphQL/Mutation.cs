@@ -14,8 +14,62 @@ namespace BigFood.GraphQL
     public class Mutation
     {
 //-------------------------------Courier Action ----------------------------------//
-    
-        
+
+        [Authorize(Roles = new[] {"COURIER"})]
+        public async Task<Order> UpdateOrderByCourierAsync(
+            UpdateOrderInput input,
+            [Service] BigFoodContext context,
+            ClaimsPrincipal claimsPrincipal)
+        {
+            var userName = claimsPrincipal.Identity.Name;
+            var courier = context.Users.Where(o => o.Username == userName).FirstOrDefault();
+            var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
+            var locCourier = context.Statuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
+            var locUser = context.Statuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
+            if(locCourier!=null)
+            {
+                locCourier.LocationLat = Convert.ToString(input.LocationLat);
+                locCourier.LocationLong = Convert.ToString(input.LocationLong);
+                context.Statuses.Update(locCourier);
+                await context.SaveChangesAsync();
+            }
+
+            var calDis = new CalculateDistance();
+            var newDistance = "";
+            if(locUser.LocationLat == locCourier.LocationLat && locUser.LocationLong == locCourier.LocationLong)
+            {
+                newDistance = "0";
+            }
+            else
+            {
+                newDistance = Convert.ToString(calDis.distance(Convert.ToDouble(locUser.LocationLat), 
+                Convert.ToDouble(locUser.LocationLong), 
+                Convert.ToDouble(locCourier.LocationLat), 
+                Convert.ToDouble(locCourier.LocationLong)));
+            }
+            
+            switch(input.StepCount)
+            {
+                case 1:
+                order.OrderStatus = $"Pesanan sedang dipesan oleh {courier.Username}";
+                order.Distance = newDistance;
+                break;
+
+                case 2:
+                order.OrderStatus = $"Pesanan sedang diantar oleh {courier.Username}";
+                order.Distance = newDistance;
+                break;
+                
+                case 3:
+                order.OrderStatus = $"Pesanan sudah sampai";
+                order.Distance = newDistance;
+                break;
+            }
+            context.Orders.Update(order);
+            await context.SaveChangesAsync();
+
+            return await Task.FromResult(order);
+        }
         
         [Authorize(Roles = new[] {"COURIER"})]
         public async Task<Order> CompleteOrderByCourierAsync(
@@ -29,9 +83,10 @@ namespace BigFood.GraphQL
             var status = context.Statuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
 
             using var transaction = context.Database.BeginTransaction();
-
-            try
+            if(order.Distance == "0")
             {
+                try
+                {
                 if(order!=null)
                 {
                     order.Complete = true;
@@ -49,20 +104,20 @@ namespace BigFood.GraphQL
                     await transaction.CommitAsync();
                     return await Task.FromResult(order);
                 }
-            }
-            catch
-            {
+                }
+                catch
+                {
                 transaction.Rollback();
+                }
             }
+
             return await Task.FromResult(order);
         }
-
-
 //--------------------------------------------------------------------------------//        
 
 //-------------------------------Buyer Action ----------------------------------//        
         
-        
+        //Buy Foods
         [Authorize(Roles = new[] {"BUYER"})]
         public async Task<OrderMessage> AddOrderByBuyerAsync(
             OrderInput input,
@@ -83,7 +138,7 @@ namespace BigFood.GraphQL
             var locCourier = context.Statuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
 
             //call calculate distance method
-            var jarak = calDis.GetDistance(Convert.ToDouble(locUser.LocationLat), 
+            var jarak = calDis.distance(Convert.ToDouble(locUser.LocationLat), 
                 Convert.ToDouble(locUser.LocationLong), 
                 Convert.ToDouble(locCourier.LocationLat), 
                 Convert.ToDouble(locCourier.LocationLong));
@@ -99,7 +154,8 @@ namespace BigFood.GraphQL
                         UserId = user.Id,
                         CourierId = input.CourierId,
                         Complete = false,
-                        Distance =  jarak2
+                        Distance =  jarak2,
+                        OrderStatus = $"Pesanan akan segera diproses oleh Kurir {courier.Username}"
                     };
                     context.Orders.Add(order);
                     await context.SaveChangesAsync();
@@ -120,7 +176,7 @@ namespace BigFood.GraphQL
 
                     await transaction.CommitAsync();
                     return await Task.FromResult(new OrderMessage(input.CourierId, order.Distance, 
-                        $"Pesananmu sedang dipesan oleh Kurir {courier.Username}"));
+                        order.OrderStatus));
                 }
                 else
                 {

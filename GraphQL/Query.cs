@@ -8,7 +8,20 @@ namespace BigFood.GraphQL
     public class Query
     {
 //------------------------------- Buyer Action ----------------------------------//
-        
+        //Track Order
+        [Authorize(Roles = new[] {"BUYER"})]
+        public IQueryable<Order?> TrackOrderByBuyer([Service] BigFoodContext context, ClaimsPrincipal claimsPrincipal)
+        {
+            var userToken = claimsPrincipal.Identity;
+            var user = context.Users.Where(u=>u.Username == userToken.Name).FirstOrDefault();
+            if (user !=null)
+            {
+                var order = context.Orders.Where(p=>p.UserId == user.Id && p.Complete == false);
+                return order.AsQueryable();
+            }
+            return new List<Order>().AsQueryable();
+        }
+        //view orders(buyer)
         [Authorize(Roles = new[] {"BUYER"})]
         public IQueryable<Order?> GetOrderByBuyer([Service] BigFoodContext context, ClaimsPrincipal claimsPrincipal)
         {

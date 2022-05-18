@@ -14,7 +14,8 @@ namespace BigFood.Models
         public int UserId { get; set; }
         public int CourierId { get; set; }
         public string Distance { get; set; } = null!;
-        public bool? Complete { get; set; }
+        public bool Complete { get; set; }
+        public string? OrderStatus { get; set; }
 
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }

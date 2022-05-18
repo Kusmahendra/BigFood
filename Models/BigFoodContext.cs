@@ -54,6 +54,10 @@ namespace BigFood.Models
                 entity.Property(e => e.Distance)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.Property(e => e.OrderStatus)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
             });
 
             modelBuilder.Entity<OrderDetail>(entity =>
