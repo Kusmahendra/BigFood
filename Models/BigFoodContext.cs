@@ -16,12 +16,13 @@ namespace BigFood.Models
         {
         }
 
+        public virtual DbSet<BuyerStatus> BuyerStatuses { get; set; } = null!;
+        public virtual DbSet<CourierStatus> CourierStatuses { get; set; } = null!;
         public virtual DbSet<Food> Foods { get; set; } = null!;
         public virtual DbSet<Order> Orders { get; set; } = null!;
         public virtual DbSet<OrderDetail> OrderDetails { get; set; } = null!;
         public virtual DbSet<Profile> Profiles { get; set; } = null!;
         public virtual DbSet<Role> Roles { get; set; } = null!;
-        public virtual DbSet<Status> Statuses { get; set; } = null!;
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<UserRole> UserRoles { get; set; } = null!;
 
@@ -36,6 +37,42 @@ namespace BigFood.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<BuyerStatus>(entity =>
+            {
+                entity.ToTable("BuyerStatus");
+
+                entity.Property(e => e.LocationLat)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.LocationLong)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<CourierStatus>(entity =>
+            {
+                entity.ToTable("CourierStatus");
+
+                entity.Property(e => e.LocationLat)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.LocationLong)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.CourierStatuses)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Status_User");
+            });
+
             modelBuilder.Entity<Food>(entity =>
             {
                 entity.ToTable("Food");
@@ -58,6 +95,18 @@ namespace BigFood.Models
                 entity.Property(e => e.OrderStatus)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.HasOne(d => d.Courier)
+                    .WithMany(p => p.OrderCouriers)
+                    .HasForeignKey(d => d.CourierId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Order_User1");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.OrderUsers)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Order_User");
             });
 
             modelBuilder.Entity<OrderDetail>(entity =>
@@ -113,30 +162,6 @@ namespace BigFood.Models
                 entity.Property(e => e.Name)
                     .HasMaxLength(50)
                     .IsUnicode(false);
-            });
-
-            modelBuilder.Entity<Status>(entity =>
-            {
-                entity.ToTable("Status");
-
-                entity.Property(e => e.LocationLat)
-                    .HasMaxLength(50)
-                    .IsUnicode(false);
-
-                entity.Property(e => e.LocationLong)
-                    .HasMaxLength(50)
-                    .IsUnicode(false);
-
-                entity.Property(e => e.Status1)
-                    .HasMaxLength(50)
-                    .IsUnicode(false)
-                    .HasColumnName("Status");
-
-                entity.HasOne(d => d.User)
-                    .WithMany(p => p.Statuses)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Status_User");
             });
 
             modelBuilder.Entity<User>(entity =>

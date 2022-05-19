@@ -14,6 +14,76 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+//--------------------------------Manage Order-----------------------------------//
+        //Update OrderDetail (for On going order only)
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public async Task<OrderDetail> UpdateOnGoingOrderByManagerAsync(
+            OrderDetailsInput input,
+            [Service] BigFoodContext context
+        )
+        {
+            var orderDetail = context.OrderDetails.Where(o=>o.Id == input.Id).FirstOrDefault();
+            var order =  context.Orders.Where(o=>o.Id == input.Id).FirstOrDefault();
+            var newCourier = context.CourierStatuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
+            var oldCourier = context.CourierStatuses.Where(s=>s.UserId == order.CourierId).FirstOrDefault();
+
+            using var transaction = context.Database.BeginTransaction();
+            try
+            {
+                if(orderDetail!=null && order.Complete == false)
+                {
+                    orderDetail.FoodId = input.FoodId;
+                    orderDetail.Quantity = input.Quantity;
+                    context.OrderDetails.Update(orderDetail);
+                }
+                if(newCourier!=null && newCourier.Status == "AVAILABLE")
+                {
+                    oldCourier.Status = "AVAILABLE";
+                    newCourier.Status = "UNAVAILABLE";
+                    order.CourierId = input.CourierId;
+                    
+                    context.CourierStatuses.Update(oldCourier);
+                    context.CourierStatuses.Update(newCourier);
+                    context.Orders.Update(order);
+                }
+                await context.SaveChangesAsync();                
+                await transaction.CommitAsync();
+
+                return await Task.FromResult(orderDetail);
+            }
+            catch
+            {
+                transaction.Rollback();
+            }
+
+            return await Task.FromResult(orderDetail);
+        }
+
+        //Delete On going Order(Cancel Order)
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public async Task<Order> DeleteOnGoingOrderByManagerAsync(
+            int input,
+            [Service] BigFoodContext context
+        )
+        {
+            var order =  context.Orders.Where(o=>o.Id == input).FirstOrDefault();
+            var buyer = context.Users.Where(u=>u.Id == order.UserId).FirstOrDefault();
+            var courier = context.CourierStatuses.Where(c=>c.UserId == order.CourierId).FirstOrDefault();
+
+            if(order!=null && order.Complete == false)
+            {
+                order.Complete = true;
+                order.OrderStatus = "Pesanan Dibatalkan";
+                context.Orders.Update(order);
+
+                courier.Status = "AVAILABLE";
+                context.CourierStatuses.Update(courier);
+                await context.SaveChangesAsync();
+            }
+            return await Task.FromResult(order);
+        }
+//-------------------------------------------------------------------------------//
+
 //-------------------------------Manage Courier----------------------------------//
         [Authorize(Roles = new[] {"MANAGER"})]
         public async Task<User> DeleteCourierByManagerAsync(
@@ -31,7 +101,6 @@ namespace BigFood.GraphQL
             {
                 context.Users.Remove(user);
                 await context.SaveChangesAsync();
-   
             }
             return await Task.FromResult(user);
         }
@@ -75,8 +144,7 @@ namespace BigFood.GraphQL
                 Email = input.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(input.Password)
             };
-
-            var ret = context.Users.Add(newUser);
+            context.Users.Add(newUser);
             await context.SaveChangesAsync();
 
             var newRoles = new UserRole
@@ -85,6 +153,14 @@ namespace BigFood.GraphQL
                 RoleId = 4
             };
             context.UserRoles.Add(newRoles);
+            await context.SaveChangesAsync();
+
+            var newStatus = new CourierStatus
+            {
+                Status = "AVAILABLE",
+                UserId = newUser.Id
+            };
+            context.CourierStatuses.Add(newStatus);
             await context.SaveChangesAsync();
 
             return await Task.FromResult(new UserData { 
@@ -106,13 +182,13 @@ namespace BigFood.GraphQL
             var userName = claimsPrincipal.Identity.Name;
             var courier = context.Users.Where(o => o.Username == userName).FirstOrDefault();
             var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
-            var locCourier = context.Statuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
-            var locUser = context.Statuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
+            var locCourier = context.CourierStatuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
+            var locUser = context.CourierStatuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
             if(locCourier!=null)
             {
                 locCourier.LocationLat = Convert.ToString(input.LocationLat);
                 locCourier.LocationLong = Convert.ToString(input.LocationLong);
-                context.Statuses.Update(locCourier);
+                context.CourierStatuses.Update(locCourier);
                 await context.SaveChangesAsync();
             }
 
@@ -162,7 +238,7 @@ namespace BigFood.GraphQL
             var courier = context.Users.Where(o => o.Username == userName).FirstOrDefault();
             var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
             var orderDetail = context.OrderDetails.Where(d=>d.OrderId == order.Id).FirstOrDefault();
-            var status = context.Statuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
+            var status = context.CourierStatuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
 
             using var transaction = context.Database.BeginTransaction();
             if(order.Distance == "0")
@@ -175,8 +251,8 @@ namespace BigFood.GraphQL
                     context.Orders.Update(order);
                     //await context.SaveChangesAsync();
 
-                    status.Status1 = "AVAILABLE";
-                    context.Statuses.Update(status);
+                    status.Status = "AVAILABLE";
+                    context.CourierStatuses.Update(status);
                     //await context.SaveChangesAsync();
 
                     orderDetail.EndDate = DateTime.Now;
@@ -215,9 +291,9 @@ namespace BigFood.GraphQL
             //User(Courier)
             var courier = context.Users.Where(u=>u.Id == input.CourierId).FirstOrDefault();
             //BuyerStatus(location)
-            var locUser = context.Statuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
+            var locUser = context.CourierStatuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
             //CourierStatus(location)
-            var locCourier = context.Statuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
+            var locCourier = context.CourierStatuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
 
             //call calculate distance method
             var jarak = calDis.distance(Convert.ToDouble(locUser.LocationLat), 
@@ -229,7 +305,7 @@ namespace BigFood.GraphQL
             using var transaction = context.Database.BeginTransaction();
             try
             {
-                if(locCourier.Status1 == "AVAILABLE")
+                if(locCourier.Status == "AVAILABLE")
                 {
                     var order = new Order
                     {
@@ -252,8 +328,8 @@ namespace BigFood.GraphQL
                     context.OrderDetails.Add(orderDetail);
                     await context.SaveChangesAsync();
 
-                    locCourier.Status1 = "UNAVAILABLE";
-                    context.Statuses.Update(locCourier);
+                    locCourier.Status = "UNAVAILABLE";
+                    context.CourierStatuses.Update(locCourier);
                     await context.SaveChangesAsync();
 
                     await transaction.CommitAsync();

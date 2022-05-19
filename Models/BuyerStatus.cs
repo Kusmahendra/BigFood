@@ -1,0 +1,13 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace BigFood.Models
+{
+    public partial class BuyerStatus
+    {
+        public int Id { get; set; }
+        public string? LocationLat { get; set; }
+        public string? LocationLong { get; set; }
+        public int UserId { get; set; }
+    }
+}

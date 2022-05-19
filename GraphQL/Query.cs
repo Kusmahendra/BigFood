@@ -7,6 +7,14 @@ namespace BigFood.GraphQL
 {
     public class Query
     {
+//------------------------------- Manage Order ----------------------------------//
+        //Read all Order
+        [Authorize(Roles = new[] {"MANAGER"})]
+        public IQueryable<Order> GetOrderByManager([Service] BigFoodContext context) =>
+            context.Orders.Include(o=>o.OrderDetails);
+
+//-------------------------------------------------------------------------------//
+
 //------------------------------- Buyer Action ----------------------------------//
         //Track Order
         [Authorize(Roles = new[] {"BUYER"})]

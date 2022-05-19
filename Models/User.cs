@@ -7,8 +7,10 @@ namespace BigFood.Models
     {
         public User()
         {
+            CourierStatuses = new HashSet<CourierStatus>();
+            OrderCouriers = new HashSet<Order>();
+            OrderUsers = new HashSet<Order>();
             Profiles = new HashSet<Profile>();
-            Statuses = new HashSet<Status>();
             UserRoles = new HashSet<UserRole>();
         }
 
@@ -17,8 +19,10 @@ namespace BigFood.Models
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;
 
+        public virtual ICollection<CourierStatus> CourierStatuses { get; set; }
+        public virtual ICollection<Order> OrderCouriers { get; set; }
+        public virtual ICollection<Order> OrderUsers { get; set; }
         public virtual ICollection<Profile> Profiles { get; set; }
-        public virtual ICollection<Status> Statuses { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; }
     }
 }
