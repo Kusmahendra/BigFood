@@ -21,8 +21,13 @@ namespace BigFood.GraphQL
             [Service] BigFoodContext context)
         {
             var role = context.UserRoles.Where(u=>u.UserId == input).FirstOrDefault();
-            var user = context.Users.Where(o=>o.Id == input).Include(u=>u.UserRoles).FirstOrDefault();
-            if(user != null && role.RoleId == 4)
+            if(role!=null && role.RoleId == 4)
+            {
+                context.UserRoles.Remove(role);
+                await context.SaveChangesAsync();
+            }
+            var user = context.Users.Where(o=>o.Id == input).FirstOrDefault();
+            if(user != null)
             {
                 context.Users.Remove(user);
                 await context.SaveChangesAsync();
@@ -352,7 +357,13 @@ namespace BigFood.GraphQL
             int input,
             [Service] BigFoodContext context)
         {
+            var role = context.UserRoles.Where(u=>u.UserId == input).FirstOrDefault();
             var user = context.Users.Where(o=>o.Id == input).FirstOrDefault();
+            if(role!=null)
+            {
+                context.UserRoles.Remove(role);
+                await context.SaveChangesAsync();
+            }
             if(user != null)
             {
                 context.Users.Remove(user);
