@@ -24,7 +24,7 @@ namespace BigFood.GraphQL
             var user = context.Users.Where(u=>u.Username == userToken.Name).FirstOrDefault();
             if (user !=null)
             {
-                var order = context.Orders.Where(p=>p.UserId == user.Id && p.Complete == false);
+                var order = context.Orders.Where(p=>p.UserId == user.Id && p.Complete == false).Include(o=>o.OrderDetails);
                 return order.AsQueryable();
             }
             return new List<Order>().AsQueryable();
@@ -37,7 +37,7 @@ namespace BigFood.GraphQL
             var user = context.Users.Where(u=>u.Username == userToken.Name).FirstOrDefault();
             if (user !=null)
             {
-                var order = context.Orders.Where(p=>p.UserId == user.Id);
+                var order = context.Orders.Where(p=>p.UserId == user.Id).Include(o=>o.OrderDetails);
                 return order.AsQueryable();
             }
             return new List<Order>().AsQueryable();
@@ -56,6 +56,8 @@ namespace BigFood.GraphQL
             context.Foods;
 //-----------------------------------------------------------------------------------------//
 
+//---------------------------------- User Managemenet -------------------------------------//
+
         //View Profile
         [Authorize]
         public IQueryable<Profile?> GetProfileByUser([Service] BigFoodContext context, ClaimsPrincipal claimsPrincipal)
@@ -69,7 +71,9 @@ namespace BigFood.GraphQL
             }
             return new List<Profile>().AsQueryable();
         }
-//------------------------------- Manage User By Admin ----------------------------------//
+//-----------------------------------------------------------------------------------------//
+
+//------------------------------- Manage User By Admin -----------------------------------//
         //Manage User(Read)
         [Authorize(Roles = new[] {"ADMIN"})]
         public IQueryable<UserData> GetUsers([Service] BigFoodContext context) =>
@@ -79,7 +83,7 @@ namespace BigFood.GraphQL
             Email = p.Email,
             Username = p.Username
         });
-//------------------------------------------------------------------------------//       
+//----------------------------------------------------------------------------------------//       
         
     }
 }

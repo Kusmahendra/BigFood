@@ -184,6 +184,7 @@ namespace BigFood.GraphQL
             var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
             var locCourier = context.CourierStatuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
             var locUser = context.CourierStatuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
+            
             if(locCourier!=null)
             {
                 locCourier.LocationLat = Convert.ToString(input.LocationLat);
@@ -428,6 +429,8 @@ namespace BigFood.GraphQL
             });
         }
 //------------------------------- Manage User By Admin ----------------------------------//
+        
+        
         [Authorize(Roles = new[] { "ADMIN"})]
         public async Task<User> DeleteUserByAdminAsync(
             int input,
@@ -497,6 +500,8 @@ namespace BigFood.GraphQL
                 Email =newUser.Email,
             });
         }
+
+
 //------------------------------------------------------------------------------//        
 
         //RegisterNew User

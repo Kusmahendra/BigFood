@@ -7,6 +7,7 @@ namespace BigFood.Models
     {
         public User()
         {
+            BuyerStatuses = new HashSet<BuyerStatus>();
             CourierStatuses = new HashSet<CourierStatus>();
             OrderCouriers = new HashSet<Order>();
             OrderUsers = new HashSet<Order>();
@@ -19,6 +20,7 @@ namespace BigFood.Models
         public string Username { get; set; } = null!;
         public string Password { get; set; } = null!;
 
+        public virtual ICollection<BuyerStatus> BuyerStatuses { get; set; }
         public virtual ICollection<CourierStatus> CourierStatuses { get; set; }
         public virtual ICollection<Order> OrderCouriers { get; set; }
         public virtual ICollection<Order> OrderUsers { get; set; }

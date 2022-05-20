@@ -9,5 +9,7 @@ namespace BigFood.Models
         public string? LocationLat { get; set; }
         public string? LocationLong { get; set; }
         public int UserId { get; set; }
+
+        public virtual User User { get; set; } = null!;
     }
 }

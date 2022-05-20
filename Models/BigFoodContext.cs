@@ -48,6 +48,12 @@ namespace BigFood.Models
                 entity.Property(e => e.LocationLong)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.BuyerStatuses)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_BuyerStatus_User");
             });
 
             modelBuilder.Entity<CourierStatus>(entity =>
