@@ -7,6 +7,9 @@ namespace BigFood.GraphQL
 {
     public class Query
     {
+        [Authorize(Roles = new[] {"ADMIN"})]
+        public IQueryable<UserRole> SeeRolesAsAdmin([Service] BigFoodContext context) =>
+            context.UserRoles;
 //------------------------------- Manage Order ----------------------------------//
         //Read all Order
         [Authorize(Roles = new[] {"MANAGER"})]

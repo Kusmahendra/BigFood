@@ -14,6 +14,7 @@ namespace BigFood.GraphQL
 
     public class Mutation
     {
+
 //--------------------------------Manage Order-----------------------------------//
         //Update OrderDetail (for On going order only)
         [Authorize(Roles = new[] {"MANAGER"})]
@@ -184,7 +185,7 @@ namespace BigFood.GraphQL
             var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
             var locCourier = context.CourierStatuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
             var locUser = context.CourierStatuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
-            
+
             if(locCourier!=null)
             {
                 locCourier.LocationLat = Convert.ToString(input.LocationLat);
@@ -430,7 +431,36 @@ namespace BigFood.GraphQL
         }
 //------------------------------- Manage User By Admin ----------------------------------//
         
-        
+        [Authorize(Roles = new[] { "ADMIN"})]
+        public async Task<User> AssignUserRoleByAdminAsync(
+            AssignRoleInput input,
+            [Service] BigFoodContext context
+        )
+        {
+            var user = context.Users.Where(u=>u.Id == input.UserId).FirstOrDefault();
+            var role = context.UserRoles.Where(r=>r.UserId == input.UserId).FirstOrDefault();
+            if(user==null)
+            {
+                return await Task.FromResult(new User());
+            }
+            if(role!=null)
+            {
+                return await Task.FromResult(new User());
+            }
+            else
+            {
+                var newRole = new UserRole
+                {
+                    UserId = input.UserId,
+                    RoleId = input.RoleId
+                };
+                context.UserRoles.Add(newRole);
+                await context.SaveChangesAsync();
+                return await Task.FromResult(user);
+            }
+            
+        }
+
         [Authorize(Roles = new[] { "ADMIN"})]
         public async Task<User> DeleteUserByAdminAsync(
             int input,
