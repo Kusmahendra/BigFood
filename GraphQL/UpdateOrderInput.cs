@@ -2,8 +2,8 @@ namespace BigFood.GraphQL
 {
     public record UpdateOrderInput
     (
-        double LocationLat,
-        double LocationLong,
+        string LocationLat,
+        string LocationLong,
         int StepCount
     );
 }

@@ -97,6 +97,14 @@ namespace BigFood.GraphQL
                 context.UserRoles.Remove(role);
                 await context.SaveChangesAsync();
             }
+
+            var status = context.CourierStatuses.Where(c=>c.UserId == input).FirstOrDefault();
+            if(status!=null)
+            {
+                context.CourierStatuses.Remove(status);
+                await context.SaveChangesAsync();
+            }
+            
             var user = context.Users.Where(o=>o.Id == input).FirstOrDefault();
             if(user != null)
             {
@@ -184,50 +192,61 @@ namespace BigFood.GraphQL
             var courier = context.Users.Where(o => o.Username == userName).FirstOrDefault();
             var order = context.Orders.Where(o=>o.Complete == false && o.CourierId == courier.Id).FirstOrDefault();
             var locCourier = context.CourierStatuses.Where(s=>s.UserId == courier.Id).FirstOrDefault();
-            var locUser = context.CourierStatuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
+            var locUser = context.BuyerStatuses.Where(s=>s.UserId == order.UserId).FirstOrDefault();
 
-            if(locCourier!=null)
+            using var transaction = context.Database.BeginTransaction();
+
+            try
             {
-                locCourier.LocationLat = Convert.ToString(input.LocationLat);
-                locCourier.LocationLong = Convert.ToString(input.LocationLong);
+            if(order!=null)
+            {          
+                var calDis = new CalculateDistance();
+                var newDistance = "";
+                if(locUser.LocationLat == input.LocationLat && locUser.LocationLong == input.LocationLong)
+                {
+                    newDistance = "0";
+                }
+                else
+                {
+                    newDistance = Convert.ToString(calDis.distance(Convert.ToDouble(locUser.LocationLat), 
+                    Convert.ToDouble(locUser.LocationLong), 
+                    Convert.ToDouble(locCourier.LocationLat), 
+                    Convert.ToDouble(locCourier.LocationLong)));
+                }
+
+                locCourier.LocationLat = input.LocationLat;
+                locCourier.LocationLong = input.LocationLong;
                 context.CourierStatuses.Update(locCourier);
                 await context.SaveChangesAsync();
-            }
-
-            var calDis = new CalculateDistance();
-            var newDistance = "";
-            if(locUser.LocationLat == locCourier.LocationLat && locUser.LocationLong == locCourier.LocationLong)
-            {
-                newDistance = "0";
-            }
-            else
-            {
-                newDistance = Convert.ToString(calDis.distance(Convert.ToDouble(locUser.LocationLat), 
-                Convert.ToDouble(locUser.LocationLong), 
-                Convert.ToDouble(locCourier.LocationLat), 
-                Convert.ToDouble(locCourier.LocationLong)));
-            }
-            
-            switch(input.StepCount)
-            {
-                case 1:
-                order.OrderStatus = $"Pesanan sedang dipesan oleh {courier.Username}";
-                order.Distance = newDistance;
-                break;
-
-                case 2:
-                order.OrderStatus = $"Pesanan sedang diantar oleh {courier.Username}";
-                order.Distance = newDistance;
-                break;
                 
-                case 3:
-                order.OrderStatus = $"Pesanan sudah sampai";
-                order.Distance = newDistance;
-                break;
-            }
-            context.Orders.Update(order);
-            await context.SaveChangesAsync();
+                switch(input.StepCount)
+                {
+                    case 1:
+                    order.OrderStatus = $"Pesanan sedang dipesan oleh {courier.Username}";
+                    order.Distance = newDistance;
+                    break;
 
+                    case 2:
+                    order.OrderStatus = $"Pesanan sedang diantar oleh {courier.Username}";
+                    order.Distance = newDistance;
+                    break;
+                    
+                    case 3:
+                    order.OrderStatus = $"Pesanan sudah sampai";
+                    order.Distance = newDistance;
+                    break;
+                }
+                context.Orders.Update(order);
+                await context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return await Task.FromResult(order);
+            }
+            }
+            catch
+            {
+                transaction.Rollback();
+            }
             return await Task.FromResult(order);
         }
         
@@ -250,6 +269,7 @@ namespace BigFood.GraphQL
                 if(order!=null)
                 {
                     order.Complete = true;
+                    order.OrderStatus = "Pesanan Selesai";
                     context.Orders.Update(order);
                     //await context.SaveChangesAsync();
 
@@ -267,7 +287,7 @@ namespace BigFood.GraphQL
                 }
                 catch
                 {
-                transaction.Rollback();
+                    transaction.Rollback();
                 }
             }
 
@@ -293,7 +313,7 @@ namespace BigFood.GraphQL
             //User(Courier)
             var courier = context.Users.Where(u=>u.Id == input.CourierId).FirstOrDefault();
             //BuyerStatus(location)
-            var locUser = context.CourierStatuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
+            var locUser = context.BuyerStatuses.Where(s=>s.UserId == user.Id).FirstOrDefault();
             //CourierStatus(location)
             var locCourier = context.CourierStatuses.Where(s=>s.UserId == input.CourierId).FirstOrDefault();
 
@@ -610,6 +630,8 @@ namespace BigFood.GraphQL
 
             return await Task.FromResult(new UserToken(null, null, Message: "Username or password was invalid"));
         }
+
+        //2Profile
 
 
 
