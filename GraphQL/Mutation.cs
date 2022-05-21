@@ -167,7 +167,9 @@ namespace BigFood.GraphQL
             var newStatus = new CourierStatus
             {
                 Status = "AVAILABLE",
-                UserId = newUser.Id
+                UserId = newUser.Id,
+                LocationLat = "0",
+                LocationLong = "0"
             };
             context.CourierStatuses.Add(newStatus);
             await context.SaveChangesAsync();
